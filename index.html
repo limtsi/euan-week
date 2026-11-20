@@ -243,7 +243,8 @@ var Week = (function () {
 })();
 if (typeof module !== 'undefined') module.exports = Week;
 
-// Talks to the week page's data service, and remembers this device's passcode and person.
+// Talks to the week page's data service, and remembers this device's token (from login) and person.
+// The passcode itself is never stored on the device.
 var Net = (function () {
   var KEY = 'euanWeek.auth';
   var OFFLINE = "Couldn't reach the server. Check your connection and try again.";
@@ -257,10 +258,10 @@ var Net = (function () {
         if (mem !== undefined) return mem;
         var raw = safe(function () { return storage.getItem(KEY); });
         var v = raw ? safe(function () { return JSON.parse(raw); }) : null;
-        return v && v.passcode && v.who ? { passcode: v.passcode, who: v.who } : null;
+        return v && v.token && v.who ? { token: v.token, who: v.who } : null;
       },
-      set: function (passcode, who) {
-        mem = { passcode: passcode, who: who };
+      set: function (token, who) {
+        mem = { token: token, who: who };
         safe(function () { storage.setItem(KEY, JSON.stringify(mem)); });
       },
       clear: function () {
@@ -311,13 +312,16 @@ var API_URL = 'https://script.google.com/macros/s/AKfycbxBIt7mz8ZbBR7jA88w-efZAr
   var auth = Net.store(ls);
 
   // name is 'api_getWeek' etc.; the data service action drops the prefix.
+  // If the device token is refused (passcode changed), the caller still rolls back, then the gate asks again;
+  // an open Add/Edit dialog stays underneath so nothing typed is lost.
   function call(name, args, ok, bad) {
     var a = auth.get();
     if (!a) { openGate(''); return; }
-    Net.post(API_URL, { passcode: a.passcode, who: a.who, action: name.replace(/^api_/, ''), args: args }, window.fetch.bind(window))
+    Net.post(API_URL, { token: a.token, who: a.who, action: name.replace(/^api_/, ''), args: args }, window.fetch.bind(window))
       .then(ok, function (e) {
-        if (e.code === 'passcode') { auth.clear(); close(); setBusy(false); openGate('Wrong passcode'); return; }
+        if (e.code === 'passcode') auth.clear();
         (bad || function (e) { toast(msg(e)); })(e);
+        if (e.code === 'passcode') openGate('The family passcode has changed. Please enter it again.');
       });
   }
   function msg(e) { return String((e && e.message) || e).replace(/^Error:\s*/, ''); }
@@ -326,11 +330,8 @@ var API_URL = 'https://script.google.com/macros/s/AKfycbxBIt7mz8ZbBR7jA88w-efZAr
   function load() {
     var seq = ++loadSeq, asked = wk;
     call('api_getWeek', [asked], function (res) {
-      closeGate();
       if (seq !== loadSeq || asked !== wk) return; // a newer request or week change superseded this one
       data = res; render();
-    }, function (e) {
-      if (gateOpen()) { $('gerr').textContent = msg(e); $('gopen').disabled = false; } else toast(msg(e));
     });
   }
   function isDone(date, id) { return data.ticks.some(function (t) { return t.date === date && t.blockId === id; }); }
@@ -396,6 +397,9 @@ var API_URL = 'https://script.google.com/macros/s/AKfycbxBIt7mz8ZbBR7jA88w-efZAr
     else data.ticks = data.ticks.filter(function (t) { return !(t.date === date && t.blockId === id); });
     render();
     call('api_setTick', [date, id, on], function () {}, function (e) {
+      if (on) data.ticks = data.ticks.filter(function (t) { return !(t.date === date && t.blockId === id); });
+      else if (!isDone(date, id)) data.ticks.push({ date: date, blockId: id });
+      render();
       toast('Couldn’t save the tick: ' + msg(e)); load();
     });
   }
@@ -446,7 +450,8 @@ var API_URL = 'https://script.google.com/macros/s/AKfycbxBIt7mz8ZbBR7jA88w-efZAr
     if (e.key === 'Escape') close();
     if (e.key === 'Enter' && e.target.tagName === 'INPUT') $('fsave').click();
   });
-  // Passcode gate: asked once per device; reopens if the passcode is wrong or someone taps Switch.
+  // Passcode gate: asked once per device. The passcode is swapped for a device token and only the token is kept.
+  // Reopens if the passcode changes or someone taps Switch.
   var gw = $('gwho');
   gw.onclick = function (e) { if (e.target.dataset.v) pick(gw, e.target.dataset.v); };
   function gateOpen() { return $('gate').classList.contains('open'); }
@@ -461,8 +466,12 @@ var API_URL = 'https://script.google.com/macros/s/AKfycbxBIt7mz8ZbBR7jA88w-efZAr
     var pass = $('gpass').value.trim(), who = val(gw);
     if (!pass) { $('gerr').textContent = 'Please enter the family passcode.'; return; }
     if (!who) { $('gerr').textContent = 'Please choose who you are.'; return; }
-    auth.set(pass, who); $('gerr').textContent = ''; $('gopen').disabled = true;
-    load();
+    $('gerr').textContent = ''; $('gopen').disabled = true;
+    Net.post(API_URL, { passcode: pass, who: who, action: 'login', args: [] }, window.fetch.bind(window)).then(function (r) {
+      auth.set(r.token, r.who); closeGate(); load();
+    }, function (e) {
+      $('gerr').textContent = msg(e); $('gopen').disabled = false;
+    });
   };
   $('gpass').onkeydown = function (e) { if (e.key === 'Enter') $('gopen').click(); };
   $('switch').onclick = function () { auth.clear(); openGate(''); };
