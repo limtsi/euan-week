@@ -1,0 +1,482 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Euan's week</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+/* Notebook/PC layout only (standing parent instruction): all 7 days side by side, no phone format. */
+:root{
+  --bg:#f6f4ef; --card:#fff; --ink:#1d1d1f; --mute:#8a8780; --line:#ebe7df; --accent:#0f8a5f;
+  --school:#4f7cf0; --tuition:#f5873a; --study:#16b07a; --cca:#ec4f7c; --family:#9a5ef2; --free:#1fb2cf;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.35 Inter,system-ui,sans-serif;-webkit-font-smoothing:antialiased;display:flex;flex-direction:column;min-width:1000px}
+.top{display:flex;align-items:center;gap:16px;padding:14px 28px;white-space:nowrap}
+h1{font-size:22px;margin:0;font-weight:700;letter-spacing:-.02em}
+.term{background:var(--accent);color:#fff;font-weight:600;font-size:14px;padding:6px 14px;border-radius:16px}
+.term.hol{background:var(--tuition)}
+.term:empty{display:none}
+.range{font-size:15px;color:var(--mute);font-weight:500}
+.btn{flex:none;border:1px solid var(--line);background:var(--card);height:34px;padding:0 14px;border-radius:17px;font:500 13px Inter,sans-serif;color:var(--ink);cursor:pointer}
+.btn:hover{border-color:#cfc9bd}
+.btn.round{width:34px;padding:0;font-size:16px}
+.btn.dark{background:var(--ink);color:#fff;border-color:var(--ink);font-weight:600}
+.spacer{flex:1}
+.hint{font-size:13px;color:var(--mute)}
+.hint.paused{color:#b45f1c;background:#fdeedd;padding:5px 12px;border-radius:14px;font-weight:500}
+.note{font-size:12px;color:#b45f1c;margin-top:8px;min-height:0}
+.note:empty{display:none}
+.stat{background:var(--card);border-radius:12px;padding:6px 14px;font-size:13px;color:var(--mute)}
+.stat b{color:var(--study);font-size:16px;margin-right:4px}
+.foot{display:flex;align-items:center;justify-content:space-between;margin:0 28px 14px}
+.legend{display:flex;gap:18px;font-size:12px;color:var(--mute)}
+.legend i{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.board{flex:1;display:grid;grid-template-columns:56px repeat(7,1fr);grid-template-rows:auto 1fr;margin:0 28px 14px;background:var(--card);border-radius:18px;box-shadow:0 1px 3px #0000000d;overflow:hidden;min-height:0}
+.loading{grid-column:1/-1;grid-row:1/-1;display:grid;place-items:center;color:var(--mute);font-size:15px}
+.dh{padding:12px 12px 10px;border-bottom:1px solid var(--line);border-left:1px solid var(--line)}
+.dh small{display:block;font-size:12px;color:var(--mute);font-weight:500;text-transform:uppercase;letter-spacing:.06em}
+.dh b{font-size:22px;font-weight:600}
+.dh .cnt{float:right;font-size:12px;color:var(--mute);margin-top:14px}
+.dh.today{background:#e6f7ef}.dh.today b,.dh.today small{color:var(--accent)}
+.corner{border-bottom:1px solid var(--line)}
+.hours{position:relative}
+.hours span{position:absolute;right:8px;font-size:11px;color:var(--mute);transform:translateY(-50%)}
+.col{position:relative;border-left:1px solid var(--line)}
+.col.today{background:#f3fbf7}
+.hl{position:absolute;left:0;right:0;border-top:1px solid #f3f0ea;pointer-events:none}
+.blk{position:absolute;left:5px;right:5px;min-height:22px;border-radius:8px;padding:4px 26px 4px 8px;overflow:hidden;cursor:pointer;color:#fff;transition:transform .1s,box-shadow .1s;z-index:1}
+.blk:hover{transform:translateY(-1px);box-shadow:0 3px 10px #0002;z-index:2}
+.blk b{display:block;font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.blk span{font-size:11px;opacity:.85}
+.blk .tick{position:absolute;top:5px;right:5px;width:17px;height:17px;border-radius:50%;border:1.5px solid #fffa;display:grid;place-items:center;font-size:11px;color:transparent}
+.blk .tick:hover{border-color:#fff}
+.blk.done{opacity:.55}.blk.done .tick{background:#fff;color:var(--ink);border-color:#fff}
+.blk.done b{text-decoration:line-through}
+.blk.short{padding-top:2px;display:flex;align-items:center}.blk.short b{font-size:12px}.blk.short span{display:none}
+.now{position:absolute;left:0;right:0;height:2px;background:#d9534f;z-index:3;pointer-events:none}
+.now::before{content:'';position:absolute;left:-5px;top:-4px;width:10px;height:10px;border-radius:50%;background:#d9534f}
+.col .add{position:absolute;inset:0}
+.sheet{position:fixed;inset:0;background:#0005;display:none;align-items:center;justify-content:center;z-index:10}
+.sheet.open{display:flex}
+.panel{background:var(--card);width:460px;border-radius:18px;padding:22px 22px 18px;box-shadow:0 20px 60px #0003}
+.panel h2{margin:0 0 6px;font-size:18px}
+.panel label{display:block;font-size:12px;color:var(--mute);margin:12px 0 5px}
+.panel input{width:100%;padding:10px 12px;border:1px solid var(--line);border-radius:10px;font:inherit}
+.row{display:flex;gap:10px}.row>*{flex:1}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{border:1px solid var(--line);background:#fff;border-radius:16px;padding:6px 12px;font:inherit;font-size:13px;cursor:pointer}
+.chips button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.actions{display:flex;gap:8px;margin-top:20px}
+.actions button{padding:11px 16px;border-radius:10px;border:0;font:600 14px Inter,sans-serif;cursor:pointer}
+.actions button:disabled{opacity:.5;cursor:default}
+.save{background:var(--accent);color:#fff}.cancel{background:var(--bg)}.del{background:#fbe9e9;color:#a33}
+.err{color:#a33;font-size:12px;min-height:16px;margin-top:8px}
+.who{font-size:12px;color:var(--mute)}.who b{color:var(--ink);font-weight:600}
+.who:has(#who:empty){display:none}
+.link{border:0;background:none;padding:0;font:inherit;color:var(--accent);cursor:pointer;text-decoration:underline}
+.gate{z-index:30;background:var(--bg)}
+.gate .panel{width:380px}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--ink);color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;opacity:0;transition:opacity .2s;pointer-events:none;z-index:20}
+.toast.show{opacity:1}
+</style>
+
+</head>
+<body>
+<div class="top">
+  <h1>Euan's week</h1>
+  <span class="term" id="term"></span>
+  <span class="range" id="range"></span>
+  <button class="btn round" id="prev" title="Previous week">‹</button>
+  <button class="btn" id="this">This week</button>
+  <button class="btn round" id="next" title="Next week">›</button>
+  <span class="hint" id="hint"></span>
+  <div class="spacer"></div>
+  <div class="stat"><b id="done">–</b>study blocks done</div>
+  <button class="btn dark" id="add">＋ Add</button>
+</div>
+<div class="board" id="board"><div class="loading">Loading…</div></div>
+<div class="foot">
+  <div class="legend" id="legend"></div>
+  <span class="who">Using as <b id="who"></b> · <button class="link" id="switch" title="Change person or passcode on this device">Switch</button></span>
+</div>
+<div class="toast" id="toast"></div>
+
+<div class="sheet" id="sheet"><div class="panel">
+  <h2 id="ftitle">Add</h2>
+  <label for="fwhat">What</label><input id="fwhat" maxlength="80" placeholder="e.g. Maths practice paper">
+  <div class="row">
+    <div><label for="fdate">Day</label><input type="date" id="fdate"></div>
+    <div><label for="fstart">Start</label><input type="time" id="fstart"></div>
+    <div><label for="fend">End</label><input type="time" id="fend"></div>
+  </div>
+  <label>Type</label><div class="chips" id="ftype"></div>
+  <label>Repeat</label><div class="chips" id="frep"><button data-v="once">Just this day</button><button data-v="weekly">Every week</button></div>
+  <div class="note" id="fnote"></div>
+  <div class="err" id="ferr"></div>
+  <div class="actions"><button class="del" id="fdel">Delete</button><div class="spacer"></div><button class="cancel" id="fcancel">Cancel</button><button class="save" id="fsave">Save</button></div>
+</div></div>
+
+<div class="sheet gate" id="gate"><div class="panel">
+  <h2>Euan's week</h2>
+  <label for="gpass">Family passcode</label><input id="gpass" type="password" inputmode="numeric" autocomplete="current-password">
+  <label>Who's using this device?</label>
+  <div class="chips" id="gwho"><button data-v="Dad">Dad</button><button data-v="Mum">Mum</button><button data-v="Euan">Euan</button></div>
+  <div class="err" id="gerr"></div>
+  <div class="actions"><div class="spacer"></div><button class="save" id="gopen">Open</button></div>
+</div></div>
+<script>
+// MOE secondary school terms and holidays, and the "Term Y · Week X of N" label.
+// Sources: MOE press releases "School Terms and Holidays for 2026" and "… for 2027". Add each new year here.
+// Nan Hua High is a national-exam venue (confirmed by the parent 14 Nov 2026: Euan was on holiday in mid-Nov),
+// so Term 4 uses MOE's early end for exam-venue schools: Fri 23 Oct 2026 (GCE O-Level), Fri 29 Oct 2027 (SEC).
+// Dates are 'YYYY-MM-DD' strings handled at UTC midnight, so results never depend on the host time zone.
+var Terms = (function () {
+  var DAY = 86400000;
+  var TERMS = [
+    { name: 'Term 4', start: '2026-09-14', end: '2026-10-23' },
+    { name: 'Term 1', start: '2027-01-04', end: '2027-03-12' },
+    { name: 'Term 2', start: '2027-03-22', end: '2027-05-28' },
+    { name: 'Term 3', start: '2027-06-28', end: '2027-09-03' },
+    { name: 'Term 4', start: '2027-09-13', end: '2027-10-29' },
+  ];
+  var HOLS = [
+    { name: 'Year-end holidays', start: '2026-10-24', end: '2027-01-03' },
+    { name: 'March holidays', start: '2027-03-13', end: '2027-03-21' },
+    { name: 'June holidays', start: '2027-05-29', end: '2027-06-27' },
+    { name: 'September holidays', start: '2027-09-04', end: '2027-09-12' },
+    { name: 'Year-end holidays', start: '2027-10-30', end: '2027-12-31' },
+  ];
+
+  function ms(s) { return Date.parse(s + 'T00:00:00Z'); }
+  function addDays(s, n) { return new Date(ms(s) + n * DAY).toISOString().slice(0, 10); }
+  function monday(s) { return addDays(s, -((new Date(ms(s)).getUTCDay() + 6) % 7)); }
+  function weekNo(fromMon, mon) { return Math.round((ms(mon) - ms(fromMon)) / (7 * DAY)) + 1; }
+
+  function label(mon) {
+    var sun = addDays(mon, 6), sat = addDays(mon, 5), i, t, h, first;
+    for (i = 0; i < TERMS.length; i++) {
+      t = TERMS[i];
+      if (mon <= t.end && sun >= t.start) {
+        first = monday(t.start);
+        return { text: t.name + ' · Week ' + weekNo(first, mon) + ' of ' + weekNo(first, monday(t.end)), holiday: false };
+      }
+    }
+    for (i = 0; i < HOLS.length; i++) {
+      h = HOLS[i];
+      if (sat >= h.start && mon <= h.end) {
+        first = monday(addDays(h.start, 2)); // holidays start on a Saturday: week 1 is the next Monday
+        return { text: h.name + ' · Week ' + weekNo(first, mon) + ' of ' + weekNo(first, monday(h.end)), holiday: true };
+      }
+    }
+    return { text: 'Term dates not yet set', holiday: true };
+  }
+
+  // True on MOE school-holiday dates. Outside the table we don't know, so nothing is treated as a holiday.
+  function isHoliday(s) {
+    return HOLS.some(function (h) { return s >= h.start && s <= h.end; });
+  }
+
+  return { TERMS: TERMS, HOLS: HOLS, label: label, isHoliday: isHoliday, monday: monday, addDays: addDays };
+})();
+if (typeof module !== 'undefined') module.exports = Terms;
+
+// Blocks, ticks and the weekly study count. A block repeats weekly (dow 0=Mon..6=Sun) or is a one-off (date).
+var Week = (function () {
+  var TYPES = { school: 'School', tuition: 'Tuition', study: 'Study', cca: 'CCA', family: 'Family', free: 'Free time' };
+
+  function has(v) { return v !== '' && v !== null && v !== undefined; }
+  function mins(t) { var p = String(t).split(':'); return Number(p[0]) * 60 + Number(p[1]); }
+  function dow(dateStr) { return (new Date(dateStr + 'T00:00:00Z').getUTCDay() + 6) % 7; }
+
+  // Weekly School and CCA blocks run in school terms only (parent, 14 Nov 2026); one-off blocks always show.
+  var TERM_ONLY = { school: true, cca: true };
+  function termOnly(type) { return !!TERM_ONLY[type]; }
+
+  function blocksFor(blocks, dateStr) {
+    var d = dow(dateStr), hol = Terms.isHoliday(dateStr);
+    return blocks.filter(function (b) {
+      if (!has(b.dow)) return b.date === dateStr;
+      return Number(b.dow) === d && !(hol && termOnly(b.type));
+    }).sort(function (a, b) { return mins(a.start) - mins(b.start); });
+  }
+
+  // How many weekly School/CCA blocks are hidden this week because their day falls in the holidays.
+  function pausedThisWeek(blocks, mondayStr) {
+    return blocks.filter(function (b) {
+      return has(b.dow) && termOnly(b.type) && Terms.isHoliday(Terms.addDays(mondayStr, Number(b.dow)));
+    }).length;
+  }
+
+  function validateBlock(b) {
+    if (!String(b.what || '').trim()) return 'Please say what it is.';
+    if (!/^\d\d:\d\d$/.test(b.start || '') || !/^\d\d:\d\d$/.test(b.end || '') || mins(b.end) <= mins(b.start))
+      return 'End time must be after start time.';
+    if (mins(b.end) <= 6 * 60) return 'The week shows 06:00–24:00. Please end after 06:00.';
+    if (!Object.prototype.hasOwnProperty.call(TYPES, b.type)) return 'Unknown type.';
+    var weekly = has(b.dow), once = has(b.date);
+    if (weekly === once) return 'Pick a day.';
+    if (weekly && !(Number(b.dow) >= 0 && Number(b.dow) <= 6)) return 'Pick a day.';
+    if (once && !/^\d{4}-\d\d-\d\d$/.test(b.date)) return 'Pick a day.';
+    return null;
+  }
+
+  function stats(blocks, ticks, mondayStr) {
+    var done = {};
+    ticks.forEach(function (t) { done[t.date + '|' + t.blockId] = true; });
+    var perDay = [], planned = 0, count = 0;
+    for (var i = 0; i < 7; i++) {
+      var date = Terms.addDays(mondayStr, i);
+      var st = blocksFor(blocks, date).filter(function (b) { return b.type === 'study'; });
+      var dn = st.filter(function (b) { return done[date + '|' + b.id]; }).length;
+      perDay.push({ planned: st.length, done: dn });
+      planned += st.length; count += dn;
+    }
+    return { planned: planned, done: count, perDay: perDay };
+  }
+
+  return { TYPES: TYPES, termOnly: termOnly, pausedThisWeek: pausedThisWeek, dow: dow, mins: mins, blocksFor: blocksFor, validateBlock: validateBlock, stats: stats };
+})();
+if (typeof module !== 'undefined') module.exports = Week;
+
+// Talks to the week page's data service, and remembers this device's passcode and person.
+var Net = (function () {
+  var KEY = 'euanWeek.auth';
+  var OFFLINE = "Couldn't reach the server. Check your connection and try again.";
+
+  // Wraps localStorage; keeps an in-memory copy so the page still works when storage is blocked.
+  function store(storage) {
+    var mem;
+    function safe(fn) { try { return fn(); } catch (e) { return undefined; } }
+    return {
+      get: function () {
+        if (mem !== undefined) return mem;
+        var raw = safe(function () { return storage.getItem(KEY); });
+        var v = raw ? safe(function () { return JSON.parse(raw); }) : null;
+        return v && v.passcode && v.who ? { passcode: v.passcode, who: v.who } : null;
+      },
+      set: function (passcode, who) {
+        mem = { passcode: passcode, who: who };
+        safe(function () { storage.setItem(KEY, JSON.stringify(mem)); });
+      },
+      clear: function () {
+        mem = null;
+        safe(function () { storage.removeItem(KEY); });
+      },
+    };
+  }
+
+  // Sent as text/plain so the browser makes a simple request (no CORS preflight, which Apps Script can't answer).
+  function post(url, body, fetchFn) {
+    return Promise.resolve()
+      .then(function () {
+        return fetchFn(url, { method: 'POST', redirect: 'follow',
+          headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(body) });
+      })
+      .then(function (res) { return res.json(); })
+      .then(null, function () { throw new Error(OFFLINE); })
+      .then(function (r) {
+        if (r && r.ok) return r.result;
+        var e = new Error((r && r.error) || OFFLINE);
+        if (r && r.code) e.code = r.code;
+        throw e;
+      });
+  }
+
+  return { store: store, post: post };
+})();
+
+var API_URL = 'https://script.google.com/macros/s/AKfycbxBIt7mz8ZbBR7jA88w-efZAr2grQ6HU_5wySLLC__NUvlvRUWpJ-ZO0EvZj6gffyZi/exec';
+</script>
+<script>
+(function () {
+  var START = 6, END = 24, DOW = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+  var MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  var $ = function (id) { return document.getElementById(id); };
+  var pad = function (n) { return String(n).padStart(2, '0'); };
+  var pct = function (m) { return ((m - START * 60) / ((END - START) * 60)) * 100; };
+  var esc = function (s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); };
+  // Singapore wall clock, whatever the device's time zone.
+  var sgtNow = function () { return new Date(Date.now() + 8 * 3600e3); };
+  var sgtToday = function () { return sgtNow().toISOString().slice(0, 10); };
+  var fmt = function (s) { var p = s.split('-'); return Number(p[2]) + ' ' + MONTHS[Number(p[1]) - 1]; };
+
+  var wk = Terms.monday(sgtToday()), data = null, editing = null, loadSeq = 0;
+
+  var ls; try { ls = window.localStorage; } catch (e) { /* blocked: Net.store keeps it in memory */ }
+  var auth = Net.store(ls);
+
+  // name is 'api_getWeek' etc.; the data service action drops the prefix.
+  function call(name, args, ok, bad) {
+    var a = auth.get();
+    if (!a) { openGate(''); return; }
+    Net.post(API_URL, { passcode: a.passcode, who: a.who, action: name.replace(/^api_/, ''), args: args }, window.fetch.bind(window))
+      .then(ok, function (e) {
+        if (e.code === 'passcode') { auth.clear(); close(); setBusy(false); openGate('Wrong passcode'); return; }
+        (bad || function (e) { toast(msg(e)); })(e);
+      });
+  }
+  function msg(e) { return String((e && e.message) || e).replace(/^Error:\s*/, ''); }
+  function toast(t) { var el = $('toast'); el.textContent = t; el.classList.add('show'); clearTimeout(toast.t); toast.t = setTimeout(function () { el.classList.remove('show'); }, 3000); }
+
+  function load() {
+    var seq = ++loadSeq, asked = wk;
+    call('api_getWeek', [asked], function (res) {
+      closeGate();
+      if (seq !== loadSeq || asked !== wk) return; // a newer request or week change superseded this one
+      data = res; render();
+    }, function (e) {
+      if (gateOpen()) { $('gerr').textContent = msg(e); $('gopen').disabled = false; } else toast(msg(e));
+    });
+  }
+  function isDone(date, id) { return data.ticks.some(function (t) { return t.date === date && t.blockId === id; }); }
+
+  function render() {
+    var today = data.today, label = Terms.label(wk), sun = Terms.addDays(wk, 6);
+    $('who').textContent = data.me || '';
+    $('term').textContent = label.text; $('term').className = 'term' + (label.holiday ? ' hol' : '');
+    $('range').textContent = fmt(wk) + ' – ' + fmt(sun) + ' ' + sun.slice(0, 4);
+    var st = Week.stats(data.blocks, data.ticks, wk);
+    $('done').textContent = st.done + '/' + st.planned;
+    var paused = Week.pausedThisWeek(data.blocks, wk);
+    $('hint').textContent = !data.blocks.length ? 'Double-click a time slot or ＋ Add to start'
+      : paused ? 'School holidays: weekly School & CCA paused' : '';
+    $('hint').className = 'hint' + (data.blocks.length && paused ? ' paused' : '');
+
+    var B = $('board'), html = '<div class="corner"></div>', dates = [];
+    for (var i = 0; i < 7; i++) dates.push(Terms.addDays(wk, i));
+    dates.forEach(function (s, i) {
+      var pd = st.perDay[i];
+      html += '<div class="dh' + (s === today ? ' today' : '') + '"><span class="cnt">' + (pd.planned ? pd.done + '/' + pd.planned + ' study' : '') +
+        '</span><small>' + DOW[i] + (s === today ? ' · today' : '') + '</small><b>' + Number(s.slice(8)) + '</b></div>';
+    });
+    html += '<div class="hours">';
+    for (var h = START + 1; h < END; h++) html += '<span style="top:' + pct(h * 60) + '%">' + pad(h) + ':00</span>';
+    B.innerHTML = html + '</div>';
+
+    dates.forEach(function (s) {
+      var c = document.createElement('div'), g = '<div class="add" title="Double-click to add"></div>';
+      c.className = 'col' + (s === today ? ' today' : '');
+      for (var h = START + 1; h < END; h++) g += '<div class="hl" style="top:' + pct(h * 60) + '%"></div>';
+      c.innerHTML = g;
+      c.querySelector('.add').ondblclick = function (e) {
+        var r = c.getBoundingClientRect();
+        var m = Math.round(((e.clientY - r.top) / r.height * (END - START) * 60 + START * 60) / 30) * 30;
+        m = Math.min(Math.max(m, START * 60), 23 * 60);
+        openSheet(null, s, pad(Math.floor(m / 60)) + ':' + pad(m % 60));
+      };
+      Week.blocksFor(data.blocks, s).forEach(function (b) {
+        var bs = Math.max(Week.mins(b.start), START * 60), be = Math.min(Week.mins(b.end), END * 60);
+        if (be <= START * 60) return; // entirely before 06:00
+        var top = pct(bs), ht = pct(be) - top, el = document.createElement('div');
+        el.className = 'blk' + (isDone(s, b.id) ? ' done' : '') + (be - bs < 75 ? ' short' : '');
+        el.style.cssText = 'top:' + top + '%;height:calc(' + ht + '% - 2px);background:var(--' + b.type + ')';
+        el.title = b.what + ' · ' + b.start + '–' + b.end + (b.dow !== '' ? ' · every week' : '') + '\nClick to edit · tick the circle when done';
+        el.innerHTML = '<b>' + esc(b.what) + '</b><span>' + b.start + '–' + b.end + '</span><div class="tick" title="Mark done">✓</div>';
+        el.querySelector('.tick').onclick = function (e) { e.stopPropagation(); toggleTick(s, b.id); };
+        el.onclick = function () { openSheet(b, s); };
+        c.appendChild(el);
+      });
+      if (s === today) {
+        var n = sgtNow(), m = n.getUTCHours() * 60 + n.getUTCMinutes();
+        if (m >= START * 60) c.insertAdjacentHTML('beforeend', '<div class="now" style="top:' + pct(m) + '%"></div>');
+      }
+      B.appendChild(c);
+    });
+  }
+
+  // Ticks show at once and roll back if the save fails.
+  function toggleTick(date, id) {
+    var on = !isDone(date, id);
+    if (on) data.ticks.push({ date: date, blockId: id });
+    else data.ticks = data.ticks.filter(function (t) { return !(t.date === date && t.blockId === id); });
+    render();
+    call('api_setTick', [date, id, on], function () {}, function (e) {
+      toast('Couldn’t save the tick: ' + msg(e)); load();
+    });
+  }
+
+  var ft = $('ftype'), fr = $('frep');
+  ft.innerHTML = Object.keys(Week.TYPES).map(function (k) { return '<button data-v="' + k + '">' + Week.TYPES[k] + '</button>'; }).join('');
+  $('legend').innerHTML = Object.keys(Week.TYPES).map(function (k) { return '<span><i style="background:var(--' + k + ')"></i>' + Week.TYPES[k] + '</span>'; }).join('');
+  function pick(w, v) { w.querySelectorAll('button').forEach(function (b) { b.classList.toggle('on', b.dataset.v === v); }); }
+  [ft, fr].forEach(function (w) { w.onclick = function (e) { if (e.target.dataset.v) { pick(w, e.target.dataset.v); note(); } }; });
+  function note() {
+    $('fnote').textContent = Week.termOnly(val(ft)) && val(fr) === 'weekly'
+      ? Week.TYPES[val(ft)] + ' repeats in school terms only: it pauses during school holidays.' : '';
+  }
+  function val(w) { var b = w.querySelector('.on'); return b && b.dataset.v; }
+
+  function openSheet(b, date, start) {
+    editing = b;
+    var today = data.today, inWeek = today >= wk && today <= Terms.addDays(wk, 6);
+    $('ftitle').textContent = b ? 'Edit' : 'Add to the week';
+    $('fwhat').value = b ? b.what : '';
+    $('fdate').value = date || (inWeek ? today : wk);
+    $('fstart').value = b ? b.start : (start || '16:00');
+    $('fend').value = b ? b.end : (start ? pad(Math.min(23, Number(start.slice(0, 2)) + 1)) + start.slice(2) : '17:00');
+    if (start === '23:00' || start === '23:30') $('fend').value = '23:59';
+    pick(ft, b ? b.type : 'study'); pick(fr, b && b.dow !== '' ? 'weekly' : 'once'); note();
+    $('fdel').style.display = b ? '' : 'none'; $('ferr').textContent = '';
+    setBusy(false);
+    $('sheet').classList.add('open'); $('fwhat').focus();
+  }
+  function close() { $('sheet').classList.remove('open'); }
+  function setBusy(on) { ['fsave', 'fdel', 'fcancel'].forEach(function (id) { $(id).disabled = on; }); }
+  function done() { setBusy(false); close(); load(); }
+  function fail(e) { setBusy(false); $('ferr').textContent = msg(e); }
+
+  $('fsave').onclick = function () {
+    var date = $('fdate').value, weekly = val(fr) === 'weekly';
+    var b = { id: editing ? editing.id : '', what: $('fwhat').value.trim(), type: val(ft), start: $('fstart').value, end: $('fend').value,
+      dow: weekly && date ? Week.dow(date) : '', date: weekly ? '' : date };
+    var err = Week.validateBlock(b);
+    if (err) { $('ferr').textContent = err; return; }
+    setBusy(true); call('api_saveBlock', [b], done, fail);
+  };
+  $('fdel').onclick = function () { if (!editing) return; setBusy(true); call('api_deleteBlock', [editing.id], done, fail); };
+  $('fcancel').onclick = close;
+  $('sheet').onclick = function (e) { if (e.target === $('sheet')) close(); };
+  document.addEventListener('keydown', function (e) {
+    if (!$('sheet').classList.contains('open')) return;
+    if (e.key === 'Escape') close();
+    if (e.key === 'Enter' && e.target.tagName === 'INPUT') $('fsave').click();
+  });
+  // Passcode gate: asked once per device; reopens if the passcode is wrong or someone taps Switch.
+  var gw = $('gwho');
+  gw.onclick = function (e) { if (e.target.dataset.v) pick(gw, e.target.dataset.v); };
+  function gateOpen() { return $('gate').classList.contains('open'); }
+  function openGate(err) {
+    var a = auth.get();
+    $('gpass').value = ''; pick(gw, a ? a.who : ($('who').textContent || ''));
+    $('gerr').textContent = err || ''; $('gopen').disabled = false;
+    $('gate').classList.add('open'); $('gpass').focus();
+  }
+  function closeGate() { $('gate').classList.remove('open'); }
+  $('gopen').onclick = function () {
+    var pass = $('gpass').value.trim(), who = val(gw);
+    if (!pass) { $('gerr').textContent = 'Please enter the family passcode.'; return; }
+    if (!who) { $('gerr').textContent = 'Please choose who you are.'; return; }
+    auth.set(pass, who); $('gerr').textContent = ''; $('gopen').disabled = true;
+    load();
+  };
+  $('gpass').onkeydown = function (e) { if (e.key === 'Enter') $('gopen').click(); };
+  $('switch').onclick = function () { auth.clear(); openGate(''); };
+
+  $('add').onclick = function () { if (data) openSheet(null); };
+  function go(mon) { wk = mon; if (data) { data.ticks = []; render(); } load(); }
+  $('prev').onclick = function () { go(Terms.addDays(wk, -7)); };
+  $('next').onclick = function () { go(Terms.addDays(wk, 7)); };
+  $('this').onclick = function () { go(Terms.monday(data ? data.today : sgtToday())); };
+
+  if (auth.get()) load(); else openGate('');
+  setInterval(function () { if (!$('sheet').classList.contains('open') && !gateOpen()) load(); }, 60000);
+})();
+</script>
+
+</body>
+</html>
